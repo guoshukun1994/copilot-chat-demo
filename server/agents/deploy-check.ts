@@ -4,7 +4,7 @@
 import type { SSEChunk } from "../sse-helpers";
 import { splitByChar } from "./deep-think";
 
-export const generateDeployCheckResponse = (query: string): SSEChunk[] => {
+export const generateDeployCheckResponse = (): SSEChunk[] => {
   const frames: SSEChunk[] = [];
   const reqId = `req_${Date.now()}`;
   const sessionId = `session_${Date.now()}`;

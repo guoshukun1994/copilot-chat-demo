@@ -33,7 +33,7 @@ app.post("/api/chat", async (req, res) => {
         frames = generateDeepThinkResponse(query || "");
         break;
       case "deploy_check":
-        frames = generateDeployCheckResponse(query || "");
+        frames = generateDeployCheckResponse();
         break;
       case "called_fail_check":
         frames = generateCalledFailCheckResponse({
@@ -58,8 +58,8 @@ app.post("/api/chat", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Mock SSE Server running at http:/localhost:${PORT}`);
-})
+  console.log(`Mock SSE Server running at http:/localhost:${PORT}`);
+});
 
 /**
  * 测试流式接口
