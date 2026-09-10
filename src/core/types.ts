@@ -31,7 +31,7 @@ export interface StreamEvent {
   id: string;
   type: StreamEventType;
   content?: string;
-  data: Record<string, unknown>;
+  data?: Record<string, unknown>;
 }
 
 /** 消息段 - 一次 AI 响应可能包含多段推理 + 回答 */

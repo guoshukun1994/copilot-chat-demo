@@ -93,9 +93,17 @@ curl 介绍：
 
 ### 4、SSE 帧解析器 + 流式文本清洗
 SSE 数据从网络来到前端，要经过三道关卡：帧解析 -》 think 标签清洗 -〉内嵌 JSON 工具提取
-4.1 src/core/parse-sse-frames.ts - 帧解析器
-4.2 src/core/strip-think.ts - Think 标签实时清洗
-4.3 src/core/find-json-object-end.ts 嵌套 JSON 边界检测
-4.4 src/core/extract-inline-tool-events.ts 从流式文本中提取嵌入的工具调用 JSON
-4.5 scr/core/stream-idle-timeout.ts 流空闲超时守卫
+* 4.1 src/core/parse-sse-frames.ts - 帧解析器
+* 4.2 src/core/strip-think.ts - Think 标签实时清洗
+* 4.3 src/core/find-json-object-end.ts 嵌套 JSON 边界检测
+* 4.4 src/core/extract-inline-tool-events.ts 从流式文本中提取嵌入的工具调用 JSON
+* 4.5 scr/core/stream-idle-timeout.ts 流空闲超时守卫
+
+### 5、消息状态机（transform-message）-最核心、最复杂
+- 每次 SSE chunk 到达时，将旧的 CopilotMessage + 新的 chunk -> 新的 CopilotMessage.
+  
+* 5.1 src/core/transform-message.ts
+  
+
+
 
