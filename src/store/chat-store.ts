@@ -97,7 +97,7 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
 }));
 
 // 细粒度选择器
-export const useMessage = () => useChatStore((s) => s.message);
+export const useMessage = () => useChatStore((s) => s.messages);
 export const useIsRequesting = () => useChatStore((s) => s.isRequesting);
 export const useCurrentAgentId = () => useChatStore((s) => s.currentAgentId);
 
