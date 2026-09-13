@@ -119,3 +119,9 @@ SSE 数据从网络来到前端，要经过三道关卡：帧解析 -》 think �
 
 **_到此，数据引擎全部完成_**
 `用户输入 -> fetch POST -> SSE 帧流 -> parseSSEFrames -> transformMessage -> Store -> ? ` 下一步接 React UI
+
+### 7、连接 数据引擎 和 React UI（useChat Hook + ChatBridge）
+
+- 7.1 src/hooks/useChat.ts - 对话管理 Hook
+- 7.2 src/hooks/useAutoScroll.ts - 智能自动滚动
+- 7.3 src/hooks/useDragFloat.ts - 浮动画板拖拽
