@@ -32,7 +32,9 @@ If you are developing a production application, we recommend enabling type-aware
 See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
 
 ## 项目 从 0--》1 全流程
+
 ### 1、项目脚手架
+
 1.1 创建项目
 npm create vite@latest copilot-chat-demo -- --template react-ts
 
@@ -60,12 +62,13 @@ mkdir -p server/agents
 ### 2、核心类型定义 - (src/core/types.ts、constants.ts)
 
 ### 3、Mock SSE 服务器 - 生产流式数据
+
 server/sse-helpers.ts
 server/agents/xxx.ts
 server/index.ts
 
 curl 介绍：
-  
+
     curl
     表示发一个 HTTP 请求
 
@@ -92,18 +95,27 @@ curl 介绍：
     -d '{xx}'
 
 ### 4、SSE 帧解析器 + 流式文本清洗
+
 SSE 数据从网络来到前端，要经过三道关卡：帧解析 -》 think 标签清洗 -〉内嵌 JSON 工具提取
-* 4.1 src/core/parse-sse-frames.ts - 帧解析器
-* 4.2 src/core/strip-think.ts - Think 标签实时清洗
-* 4.3 src/core/find-json-object-end.ts 嵌套 JSON 边界检测
-* 4.4 src/core/extract-inline-tool-events.ts 从流式文本中提取嵌入的工具调用 JSON
-* 4.5 scr/core/stream-idle-timeout.ts 流空闲超时守卫
+
+- 4.1 src/core/parse-sse-frames.ts - 帧解析器
+- 4.2 src/core/strip-think.ts - Think 标签实时清洗
+- 4.3 src/core/find-json-object-end.ts 嵌套 JSON 边界检测
+- 4.4 src/core/extract-inline-tool-events.ts 从流式文本中提取嵌入的工具调用 JSON
+- 4.5 scr/core/stream-idle-timeout.ts 流空闲超时守卫
 
 ### 5、消息状态机（transform-message）-最核心、最复杂
+
 - 每次 SSE chunk 到达时，将旧的 CopilotMessage + 新的 chunk -> 新的 CopilotMessage.
-  
+
 * 5.1 src/core/transform-message.ts
-  
 
+### 6、ChatProvider + Zustand Store
 
+- 6.1 src/core/chat-provider.ts - 串联所有 core 模块
+  - 数据流回顾： fetch -> reader.read() -> parseSSEFrames -> transformMessage -> onUpdate -> Store -> React
+- 6.2 src/store/chat-store.ts - 对话状态管理 - 消息列表、会话、请求控制
+- 6.3 src/store/copilot-store.ts - Copilot 全局状态 - 面板开关、模式、Agent 选择
 
+**_到此，数据引擎全部完成_**
+`用户输入 -> fetch POST -> SSE 帧流 -> parseSSEFrames -> transformMessage -> Store -> ? ` 下一步接 React UI
