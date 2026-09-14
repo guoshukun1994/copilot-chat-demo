@@ -125,3 +125,15 @@ SSE 数据从网络来到前端，要经过三道关卡：帧解析 -》 think �
 - 7.1 src/hooks/useChat.ts - 对话管理 Hook
 - 7.2 src/hooks/useAutoScroll.ts - 智能自动滚动
 - 7.3 src/hooks/useDragFloat.ts - 浮动画板拖拽
+
+### 8、基础 UI - (马上能在浏览器聊天了)
+
+- 8.1 src/agent/agent-router.ts - Agent 路由
+- 8.2 src/messages/MarkdownContent.tsx - 安全的 Markdown 渲染
+- 8.3 src/messages/DeepThinkBlock.tsx - DeepThink + ToolCall + MessageActions
+- 8.4 src/messages/messageBubble.tsx - MessageBubble
+- 8.5 src/chat/ChatInput.tsx - ChatInput
+- 8.6 src/chat/AgentSwitcher.tsx - AgentSwitcher + Welcome
+- 8.7 src/chat/ChatView - ChatView(主视图)
+- 8.8 src/chat/xxx.module.css - chat下的css
+- 8.9 src/App.tsx - 串联到 App
