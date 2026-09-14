@@ -147,7 +147,7 @@ export const useChat = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const unRegsiterBridge = useCallback(() => {
+  const unRegisterBridge = useCallback(() => {
     chatBridge.unregisterHandler();
     bridgeRegistered.current = false;
   }, []);
@@ -165,7 +165,7 @@ export const useChat = () => {
     abortRequest,
     setCurrentAgentId,
     registerBridge,
-    unRegsiterBridge,
+    unRegisterBridge,
     startNewConversation,
   };
 };
