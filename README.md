@@ -150,3 +150,14 @@ SSE 数据从网络来到前端，要经过三道关卡：帧解析 -》 think �
 **_ 目前打开面板不会自动发消息，需要把 openPanel(question) 和Chat面板串联起来 _**
 
 - 10.1 修改 App.tsx - 增强主页面交互
+
+### 白噪声过滤（stream-adapter）+ oxlint配置
+
+- 11.1 src/core/stream-adapter.ts
+  **白噪声过滤：当chunk 只包含 think内容时，不 emit 新 chunk,避免 React 无效 re-render。**
+- 11.2 .oxlintrc.json
+- 11.3 删除模版残留
+  `rm -f src/assets/react.svg`
+
+  ![完整架构回顾](678c23860043d045d98b0867dedeae5c.jpg)
+  ![面试高频问题对照](c7f867c5bae8aeb511537f5522d1b91f.jpg)
