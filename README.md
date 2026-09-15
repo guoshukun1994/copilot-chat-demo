@@ -137,3 +137,10 @@ SSE 数据从网络来到前端，要经过三道关卡：帧解析 -》 think �
 - 8.7 src/chat/ChatView - ChatView(主视图)
 - 8.8 src/chat/xxx.module.css - chat下的css
 - 8.9 src/App.tsx - 串联到 App
+
+### 9、三模式面板（Side / Float / Push）
+
+- 9.1 src/panels/panels.module.css - 面板样式
+- 9.2 src/panels/CopilotPanel.tsx
+- 9.3 src/App.tsx - 更新主布局
+- 9.4 src/App.css - 更新全局样式
