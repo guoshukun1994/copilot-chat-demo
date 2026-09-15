@@ -70,7 +70,7 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
       } else {
         const msgId = state._nextMsgId;
         msgs.push({ ...message, _msgId: msgId });
-        return { _nextMsgId: msgId + 1, message: msgs };
+        return { _nextMsgId: msgId + 1, messages: msgs };
       }
       return { messages: msgs };
     }),

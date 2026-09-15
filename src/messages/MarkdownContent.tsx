@@ -19,6 +19,51 @@ const isSafeUrl = (url: string): boolean => {
   );
 };
 
+/** 判断是否为普通文本行（不是任何块级语法的起始行） */
+const isPlainTextLine = (line: string): boolean => {
+  const t = line.trimStart();
+  return (
+    t.trim() !== "" &&
+    t !== "-" &&
+    t !== "*" &&
+    !t.startsWith("- ") &&
+    !t.startsWith("* ") &&
+    !t.startsWith("> ") &&
+    !t.startsWith("```") &&
+    !/^(#{1,6})\s/.test(t) &&
+    !/^(\d+)[.、]\s*/.test(t)
+  );
+};
+
+/** 匹配无序列表标记，返回标记长度；非标记行返回 0 */
+const matchUlMarker = (line: string): number => {
+  const t = line.trimStart();
+  if (t.startsWith("- ") || t.startsWith("* ")) return 2;
+  if (t === "-" || t === "*") return 1;
+  return 0;
+};
+
+/**
+ * 读取列表项内容。LLM 常把标记单独放在行尾/独占一行、内容换到下一行，
+ * 此时把下一行普通文本并回本项，避免序号与内容错位。
+ */
+const readListItem = (
+  lines: string[],
+  startIdx: number,
+  markerLen: number,
+): { item: string; nextIdx: number } => {
+  let item = lines[startIdx]!.trimStart().slice(markerLen);
+  let nextIdx = startIdx + 1;
+  if (item === "") {
+    const next = lines[nextIdx];
+    if (next !== undefined && isPlainTextLine(next)) {
+      item = next.trim();
+      nextIdx++;
+    }
+  }
+  return { item, nextIdx };
+};
+
 const parseMarkdown = (text: string): React.ReactNode[] => {
   const lines = text.split("\n");
   const nodes: React.ReactNode[] = [];
@@ -75,21 +120,16 @@ const parseMarkdown = (text: string): React.ReactNode[] => {
     }
 
     // --- 无序列表 ---
-    if (
-      line.trimStart().startsWith("- ") ||
-      line.trimStart().startsWith("* ")
-    ) {
+    if (matchUlMarker(line) > 0) {
       const items: string[] = [];
       while (lineIdx < lines.length) {
         const current = lines[lineIdx];
         if (current === undefined) break;
-        if (
-          current.trimStart().startsWith("- ") ||
-          current.trimStart().startsWith("* ")
-        ) {
-          items.push(current.trimStart().slice(2));
-          lineIdx++;
-        } else break;
+        const markerLen = matchUlMarker(current);
+        if (markerLen === 0) break;
+        const { item, nextIdx } = readListItem(lines, lineIdx, markerLen);
+        lineIdx = nextIdx;
+        if (item !== "") items.push(item);
       }
       nodes.push(
         <ul key={`ul_${lineIdx}`} className={styles.mdUl}>
@@ -102,19 +142,25 @@ const parseMarkdown = (text: string): React.ReactNode[] => {
     }
 
     // --- 有序列表 ---
-    const olMatch = line.match(/^\d+\.\s/);
+    const olMatch = line.trimStart().match(/^(\d+)[.、]\s*/);
     if (olMatch) {
       const items: string[] = [];
+      const startNum = Number.parseInt(olMatch[1]!, 10);
       while (lineIdx < lines.length) {
         const current = lines[lineIdx];
         if (current === undefined) break;
-        if (/^\d+\.\s/.test(current.trimStart())) {
-          items.push(current.trimStart().replace(/^\d+\.\s/, ""));
-          lineIdx++;
-        } else break;
+        const itemMatch = current.trimStart().match(/^(\d+)[.、]\s*/);
+        if (!itemMatch) break;
+        const { item, nextIdx } = readListItem(
+          lines,
+          lineIdx,
+          itemMatch[0].length,
+        );
+        lineIdx = nextIdx;
+        if (item !== "") items.push(item);
       }
       nodes.push(
-        <ol key={`ol_${lineIdx}`} className={styles.mdOl}>
+        <ol key={`ol_${lineIdx}`} className={styles.mdOl} start={startNum}>
           {items.map((item, idx) => (
             <li key={idx}>{renderInlineContent(item)}</li>
           ))}
