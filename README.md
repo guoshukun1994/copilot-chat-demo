@@ -144,3 +144,9 @@ SSE 数据从网络来到前端，要经过三道关卡：帧解析 -》 think �
 - 9.2 src/panels/CopilotPanel.tsx
 - 9.3 src/App.tsx - 更新主布局
 - 9.4 src/App.css - 更新全局样式
+
+### 10 ChatBridge 打通主页面 -》 面板
+
+**_ 目前打开面板不会自动发消息，需要把 openPanel(question) 和Chat面板串联起来 _**
+
+- 10.1 修改 App.tsx - 增强主页面交互
