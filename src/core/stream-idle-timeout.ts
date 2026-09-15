@@ -74,7 +74,7 @@ export const withStreamIdleTimeout = (
         controller.error(
           new Error("会话已超过10分钟， 运行环境已释放，请开始新对话"),
         );
-      });
+      }, ABSOLUTE_TIMEOUT_MS);
 
       const pump = async () => {
         resetIdleTimer();
