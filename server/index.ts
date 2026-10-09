@@ -7,6 +7,7 @@ import { generateNoramlResponse } from "./agents/normal";
 import { generateDeepThinkResponse } from "./agents/deep-think";
 import { generateDeployCheckResponse } from "./agents/deploy-check";
 import { generateCalledFailCheckResponse } from "./agents/called-fail-check";
+import { generateStressResponse } from "./agents/stress";
 
 const app = express();
 const PORT = 3001;
@@ -27,6 +28,17 @@ app.post("/api/chat", async (req, res) => {
   setSSEHeaders(res);
 
   try {
+    // 压测模式：query 含"压测"时走高速率流
+    // 支持"压测 x8 tps50"：x 指定轮数（1 轮 ≈ 1.8s），tps 指定速率（token/s，默认 500）
+    if ((query || "").includes("压测")) {
+      const m = (query || "").match(/x\s*(\d+)/i);
+      const rounds = m ? Math.min(Math.max(parseInt(m[1], 10) || 1, 1), 20) : 1;
+      const t = (query || "").match(/tps\s*(\d+)/i);
+      const tps = t ? Math.min(Math.max(parseInt(t[1], 10) || 500, 5), 500) : 500;
+      await streamFrames(res, generateStressResponse(rounds), () => 1000 / tps);
+      return;
+    }
+
     let frames;
     switch (agentId) {
       case "deep_think":

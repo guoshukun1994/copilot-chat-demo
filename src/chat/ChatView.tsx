@@ -7,9 +7,11 @@ import Welcome from "./Welcome";
 import AgentSwitcher from "./AgentSwitcher";
 import { AGENT_CONFIGS } from "../agent/agent-router";
 import { AgentId } from "../core/types";
+import StreamProbe from "../dev/StreamProbe";
 import styles from "./chat.module.css";
 
 const ChatView: React.FC = () => {
+  window.__streamProbe?.list();
   const {
     messages,
     isRequesting,
@@ -68,6 +70,8 @@ const ChatView: React.FC = () => {
         isRequesting={isRequesting}
         placeholder={`向${currentConfig?.name || "Copilot"}提问...`}
       />
+
+      <StreamProbe />
     </div>
   );
 };
