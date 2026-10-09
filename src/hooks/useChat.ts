@@ -17,6 +17,8 @@ import {
 } from "../core/types";
 import { useChatStore } from "../store/chat-store";
 import { resetSessionId, streamChat } from "../core/chat-provider";
+import { createFrameBatcher } from "../core/frame-batcher";
+import { getWriteMode } from "../core/write-mode";
 
 type SendMessageHandler = (query: string, agentId?: AgentId) => void;
 
@@ -93,15 +95,36 @@ export const useChat = () => {
       setRequesting(true);
 
       const controller = createAbortController();
+      // 合帧模式下的写入器：每个请求独立一个，避免串会话
+      const batcher = createFrameBatcher<CopilotMessage>((m) =>
+        updateLastAssistantMessage(m),
+      );
+      // 当前生效的写入模式；流式途中允许切换对比，但切换瞬间要先处理缓存
+      let activeMode = getWriteMode();
       try {
         await streamChat(
           { query, userId: "demo_user", agentId: finalAgentId },
           (updateMessage) => {
-            updateLastAssistantMessage(updateMessage);
+            const mode = getWriteMode();
+            if (mode !== activeMode) {
+              // 合帧 -> 逐 token：先把缓存的最新快照写出，再按新模式直写。
+              // 否则缓存里的旧快照会在更新的内容之后落库，文本回退
+              if (activeMode === "frame") batcher.flushNow();
+              activeMode = mode;
+            }
+            if (mode === "frame") {
+              batcher.push(updateMessage);
+            } else {
+              updateLastAssistantMessage(updateMessage);
+            }
           },
           controller.signal,
         );
+        // 流正常结束：立即写出最后一帧缓存，保证 finished 状态落库
+        batcher.flushNow();
       } catch (error: unknown) {
+        // 出错：丢弃缓存快照，避免旧内容覆盖错误提示
+        batcher.drop();
         const err = error as Error;
         if (err.name === "AbortError") {
           setLastAssistantMessage({
