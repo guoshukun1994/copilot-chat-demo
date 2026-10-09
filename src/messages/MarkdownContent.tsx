@@ -104,6 +104,9 @@ const parseMarkdown = (text: string): React.ReactNode[] => {
     // --- 引用块 ---
     if (line.trimStart().startsWith("> ")) {
       const quoteLines: string[] = [];
+      // key 用起始行号：流式期间块会逐行变长，消费完之后的行号每次都变，
+      // 会导致整个块卸载重建（前面所有内容重画）
+      const startIdx = lineIdx;
       while (
         lineIdx < lines.length &&
         lines[lineIdx]?.trimStart().startsWith("> ")
@@ -112,7 +115,7 @@ const parseMarkdown = (text: string): React.ReactNode[] => {
         lineIdx++;
       }
       nodes.push(
-        <blockquote key={`quote_${lineIdx}`} className={styles.mdBlockquote}>
+        <blockquote key={`quote_${startIdx}`} className={styles.mdBlockquote}>
           {renderInlineContent(quoteLines.join("\n"))}
         </blockquote>,
       );
@@ -122,6 +125,7 @@ const parseMarkdown = (text: string): React.ReactNode[] => {
     // --- 无序列表 ---
     if (matchUlMarker(line) > 0) {
       const items: string[] = [];
+      const startIdx = lineIdx;
       while (lineIdx < lines.length) {
         const current = lines[lineIdx];
         if (current === undefined) break;
@@ -132,7 +136,7 @@ const parseMarkdown = (text: string): React.ReactNode[] => {
         if (item !== "") items.push(item);
       }
       nodes.push(
-        <ul key={`ul_${lineIdx}`} className={styles.mdUl}>
+        <ul key={`ul_${startIdx}`} className={styles.mdUl}>
           {items.map((item, idx) => (
             <li key={idx}>{renderInlineContent(item)}</li>
           ))}
@@ -146,6 +150,7 @@ const parseMarkdown = (text: string): React.ReactNode[] => {
     if (olMatch) {
       const items: string[] = [];
       const startNum = Number.parseInt(olMatch[1]!, 10);
+      const startIdx = lineIdx;
       while (lineIdx < lines.length) {
         const current = lines[lineIdx];
         if (current === undefined) break;
@@ -160,7 +165,7 @@ const parseMarkdown = (text: string): React.ReactNode[] => {
         if (item !== "") items.push(item);
       }
       nodes.push(
-        <ol key={`ol_${lineIdx}`} className={styles.mdOl} start={startNum}>
+        <ol key={`ol_${startIdx}`} className={styles.mdOl} start={startNum}>
           {items.map((item, idx) => (
             <li key={idx}>{renderInlineContent(item)}</li>
           ))}
@@ -287,8 +292,38 @@ const renderInlineContent = (text: string): React.ReactNode[] => {
   return parts;
 };
 
-const MarkdownContent: React.FC<{ text: string }> = ({ text }) => {
-  const nodes = useMemo(() => parseMarkdown(text), [text]);
+/** 统计已完结区域的围栏行数；奇数说明最后一个未完结行处于代码块内部 */
+const countFences = (text: string): number =>
+  text.split("\n").filter((l) => l.trimStart().startsWith("```")).length;
+
+const MarkdownContent: React.FC<{ text: string; streaming?: boolean }> = ({
+  text,
+  streaming,
+}) => {
+  const nodes = useMemo(() => {
+    if (!streaming) return parseMarkdown(text);
+    // 流式稳定化：按住最后一个未完结行（没有 \n 结尾），按纯文本渲染，
+    // 不参与块级解析。避免半个 ```、1.、# 等语法反复翻转已渲染区域的
+    // 块结构（段落↔列表项、段落↔代码块），消除流式期间的高度抖动；
+    // 行完结（收到 \n）后才激活块语法。
+    const cut = text.lastIndexOf("\n");
+    const head = cut === -1 ? "" : text.slice(0, cut);
+    const tail = cut === -1 ? text : text.slice(cut + 1);
+    // 末行在代码块内部时是代码内容，不会翻转块结构，整体解析即可
+    if (countFences(head) % 2 === 1) return parseMarkdown(text);
+    const result = head === "" ? [] : parseMarkdown(head);
+    if (tail !== "") {
+      // 末行按纯文本渲染，不做行内解析：**、` 等符号未闭合前先原样显示，
+      // 避免闭合瞬间已显示区域被改写成加粗/代码样式（"前面的文字再覆盖一遍"的观感）；
+      // 行完结（收到 \n）被吸收进块级结构时再一次性获得格式
+      result.push(
+        <p key="streaming_tail" className={styles.mdParagraph}>
+          {tail}
+        </p>,
+      );
+    }
+    return result;
+  }, [text, streaming]);
   return <div className={styles.mdContainer}>{nodes}</div>;
 };
 

@@ -15,6 +15,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   isRequesting,
 }) => {
+  window.__streamProbe?.bubble();
   // 用户消息
   if (message.query) {
     return (
@@ -42,7 +43,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               .map((event) => (
                 <ToolCallCard key={event.id} event={event} />
               ))}
-            {segment.text && <MarkdownContent text={segment.text} />}
+            {segment.text && (
+              <MarkdownContent
+                text={segment.text}
+                streaming={!segment.finished && isRequesting}
+              />
+            )}
             {segment.error && (
               <div className={styles.aiError}>{segment.error}</div>
             )}
@@ -85,7 +91,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       {toolEvents.map((event) => (
         <ToolCallCard key={event.id} event={event} />
       ))}
-      {answerText && <MarkdownContent text={answerText} />}
+      {answerText && (
+        <MarkdownContent
+          text={answerText}
+          streaming={!message.finished && isRequesting}
+        />
+      )}
       {message.error && <div className={styles.aiError}>{message.error}</div>}
       {message.interrupted && (
         <div className={styles.aiInterrupted}>接口中断，请输入继续执行</div>
