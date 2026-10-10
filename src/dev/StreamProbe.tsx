@@ -1,12 +1,16 @@
 /**
  * 流式渲染探针面板（仅开发环境）
  *
- * 挂在页面右下角，实时显示 store 写入 / 列表渲染 / 气泡渲染计数。
+ * 吸附在消息对话容器的左侧外边（fixed 定位，不受父级 overflow 裁剪），
+ * 实时显示 store 写入 / 列表渲染 / 气泡渲染计数。
+ * 通过 Portal 挂到 body 下：push 面板的 will-change/transform 会截获
+ * fixed 定位的包含块，Portal 到 body 后坐标才真正相对视口。
  * URL 带 ?stress=1 时自动发送一条"压测"消息，用于改动前后对比。
  * 顶部可切换写入模式：逐 token（基线）vs 合帧（rAF），对比两组数据。
  * 面板自身用 300ms 轮询刷新，不订阅 store，避免干扰被测路径。
  */
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { getProbeStats, installProbe, resetProbe } from "./stream-probe";
 import {
   getWriteMode,
@@ -18,10 +22,8 @@ import { chatBridge } from "../hooks/useChat";
 import { useChatStore } from "../store/chat-store";
 import type { CopilotMessage } from "../core/types";
 
-const panelStyle: React.CSSProperties = {
+const panelBaseStyle: React.CSSProperties = {
   position: "fixed",
-  right: 12,
-  bottom: 12,
   zIndex: 9999,
   background: "rgba(0, 0, 0, 0.78)",
   color: "#7CFC00",
@@ -46,6 +48,13 @@ const modeBtnStyle = (active: boolean): React.CSSProperties => ({
 export const StreamProbe: React.FC = () => {
   const [, setTick] = useState(0);
   const [mode, setMode] = useState<WriteMode>(getWriteMode);
+  const panelRef = React.useRef<HTMLDivElement | null>(null);
+  // 面板宽度由内容决定且基本不变，挂载后量一次即可，避免渲染期读 ref
+  const [panelWidth, setPanelWidth] = useState(240);
+
+  useEffect(() => {
+    if (panelRef.current) setPanelWidth(panelRef.current.offsetWidth);
+  }, []);
 
   useEffect(() => {
     installProbe();
@@ -55,10 +64,16 @@ export const StreamProbe: React.FC = () => {
     if (params.has("stress")) {
       // 预置历史消息（?msgs= 可调）：每个 token 帧都会带动全部气泡重渲染，
       // 放大主线程压力，让"流式期间打字卡顿"可感知
-      const msgCount = Math.min(parseInt(params.get("msgs") || "60", 10) || 60, 300);
+      const msgCount = Math.min(
+        parseInt(params.get("msgs") || "60", 10) || 60,
+        300,
+      );
       seedHistoryMessages(msgCount);
       // 压测轮数（?rounds= 可调）：1 轮 ≈ 1.8s，8 轮 ≈ 15s，足够边流式边打字
-      const rounds = Math.min(parseInt(params.get("rounds") || "8", 10) || 8, 20);
+      const rounds = Math.min(
+        parseInt(params.get("rounds") || "8", 10) || 8,
+        20,
+      );
       // 推流速率（?tps= 可调，token/s）：默认 40 便于阅读，压极限性能用 500
       const tps = Math.min(
         Math.max(parseInt(params.get("tps") || "40", 10) || 40, 5),
@@ -87,10 +102,12 @@ export const StreamProbe: React.FC = () => {
   const elapsed = s.startedAt
     ? ((s.streaming ? now : s.endedAt || now) - s.startedAt) / 1000
     : 0;
-  const rate = s.startedAt && elapsed > 0 ? (s.storeWrites / elapsed).toFixed(0) : "-";
+  const rate =
+    s.startedAt && elapsed > 0 ? (s.storeWrites / elapsed).toFixed(0) : "-";
   const amplify =
     s.listRenders > 0 ? (s.bubbleRenders / s.listRenders).toFixed(1) : "-";
-  const fps = s.startedAt && elapsed > 0 ? (s.frames / elapsed).toFixed(0) : "-";
+  const fps =
+    s.startedAt && elapsed > 0 ? (s.frames / elapsed).toFixed(0) : "-";
   const tpsParam = new URLSearchParams(window.location.search).get("tps");
   const status = s.streaming
     ? `流式中… ${elapsed.toFixed(1)}s`
@@ -98,8 +115,21 @@ export const StreamProbe: React.FC = () => {
       ? `已结束 ${elapsed.toFixed(1)}s`
       : "待触发（?stress=1 自动压测）";
 
-  return (
-    <div style={panelStyle}>
+  // 每 300ms 轮询重渲染时顺便读取对话容器的位置，
+  // 把面板贴到容器左侧外边；左侧空间不足时退回容器内左上角，避免飞出屏幕。
+  const containerRect = document
+    .querySelector("[data-chat-view]")
+    ?.getBoundingClientRect();
+  let left = 12;
+  let top = 12;
+  if (containerRect) {
+    const outsideLeft = containerRect.left - panelWidth - 8;
+    left = outsideLeft >= 0 ? outsideLeft : containerRect.left + 8;
+    top = containerRect.top + 8;
+  }
+
+  return createPortal(
+    <div ref={panelRef} style={{ ...panelBaseStyle, left, top }}>
       <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
         <button
           type="button"
@@ -125,6 +155,8 @@ export const StreamProbe: React.FC = () => {
       {`长任务      ${s.longTasks} 个 (最长 ${Math.round(s.maxTask)}ms)\n`}
       {status}
     </div>
+    ,
+    document.body,
   );
 };
 
@@ -143,7 +175,10 @@ const seedHistoryMessages = (count: number) => {
   for (let i = 0; i < count; i++) {
     const id = i + 1;
     if (i % 2 === 0) {
-      msgs.push({ _msgId: id, query: `历史问题 ${Math.floor(i / 2) + 1}：讲一下流式渲染的注意事项` });
+      msgs.push({
+        _msgId: id,
+        query: `历史问题 ${Math.floor(i / 2) + 1}：讲一下流式渲染的注意事项`,
+      });
     } else {
       msgs.push({
         _msgId: id,

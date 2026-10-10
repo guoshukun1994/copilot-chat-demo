@@ -34,7 +34,7 @@ const ChatView: React.FC = () => {
   const currentConfig = AGENT_CONFIGS.find((c) => c.id === currentAgentId);
 
   return (
-    <div className={styles.chatView}>
+    <div className={styles.chatView} data-chat-view="true">
       <AgentSwitcher
         currentAgentId={currentAgentId}
         onAgentChange={setCurrentAgentId}
