@@ -112,4 +112,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   );
 };
 
-export default MessageBubble;
+// memo:流式期间列表每渲染一次会带动全部气泡,而 store 只更新流式那条的引用,
+// 其余气泡 message 引用不变,浅比较后直接跳过渲染(探针"放大倍数"从 Nx 降到 ~1x)
+export default React.memo(MessageBubble);
