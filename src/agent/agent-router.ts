@@ -37,6 +37,18 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     description: "诊断API调用失败原因",
     icon: "🏥",
   },
+  {
+    id: AgentId.ArkChat,
+    name: "火山问答",
+    description: "真实大模型,流式直连",
+    icon: "🤖",
+  },
+  {
+    id: AgentId.ArkReasoner,
+    name: "火山推理",
+    description: "真实大模型,带推理过程",
+    icon: "🌊",
+  },
 ];
 
 export const resolveAgentId = (options: {

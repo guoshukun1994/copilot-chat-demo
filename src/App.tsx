@@ -61,6 +61,22 @@ import React from 'react';
                   <span className="actionLabel">调用诊断</span>
                   <span className="actionDesc">排查调用失败</span>
                 </button>
+                <button
+                  className="actionCard"
+                  onClick={() => handleOpenWithQuestion('用三句话介绍一下你自己', AgentId.ArkChat)}
+                >
+                  <span className="actionIcon">🤖</span>
+                  <span className="actionLabel">火山问答</span>
+                  <span className="actionDesc">真实大模型直连</span>
+                </button>
+                <button
+                  className="actionCard"
+                  onClick={() => handleOpenWithQuestion('9.11 和 9.9 哪个大？请逐步推理', AgentId.ArkReasoner)}
+                >
+                  <span className="actionIcon">🌊</span>
+                  <span className="actionLabel">火山推理</span>
+                  <span className="actionDesc">真实模型带推理过程</span>
+                </button>
               </div>
             </div>
           </div>

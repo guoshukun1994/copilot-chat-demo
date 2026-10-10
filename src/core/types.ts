@@ -14,6 +14,8 @@ export const AgentId = {
   DeepThink: "deep_think",
   DeployCheck: "deploy_check",
   CalledFailCheck: "called_fail_check",
+  ArkChat: "ark_chat",
+  ArkReasoner: "ark_reasoner",
 } as const;
 export type AgentId = (typeof AgentId)[keyof typeof AgentId];
 

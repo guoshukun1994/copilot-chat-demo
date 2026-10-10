@@ -1,5 +1,6 @@
-/** Mock SSE Server - 模拟 4 种 Agent 的流式响应 */
+/** Mock SSE Server - 模拟 4 种 Agent 的流式响应 + 火山方舟真实模型转发 */
 
+import process from "node:process";
 import express from "express";
 import cors from "cors";
 import { setSSEHeaders, streamFrames } from "./sse-helpers";
@@ -8,6 +9,14 @@ import { generateDeepThinkResponse } from "./agents/deep-think";
 import { generateDeployCheckResponse } from "./agents/deploy-check";
 import { generateCalledFailCheckResponse } from "./agents/called-fail-check";
 import { generateStressResponse } from "./agents/stress";
+import { streamArkResponse } from "./agents/ark";
+
+// 加载本地 .env(Node 20.12+ 内置,文件不存在时静默跳过)
+try {
+  process.loadEnvFile();
+} catch {
+  // 没有 .env 文件时忽略,方舟 Agent 会提示未配置密钥
+}
 
 const app = express();
 const PORT = 3001;
@@ -36,6 +45,16 @@ app.post("/api/chat", async (req, res) => {
       const t = (query || "").match(/tps\s*(\d+)/i);
       const tps = t ? Math.min(Math.max(parseInt(t[1], 10) || 500, 5), 500) : 500;
       await streamFrames(res, generateStressResponse(rounds), () => 1000 / tps);
+      return;
+    }
+
+    // 火山方舟真实大模型:边读上游边转发,不走 mock 的 streamFrames 重放
+    if (agentId === "ark_chat" || agentId === "ark_reasoner") {
+      await streamArkResponse(
+        res,
+        query || "",
+        agentId === "ark_reasoner" ? "reasoner" : "chat",
+      );
       return;
     }
 
